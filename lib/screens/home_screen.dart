@@ -1,6 +1,6 @@
-import 'package:app/models/pedido_model.dart';
-import 'package:app/services/pedido_banco.dart';
 import 'package:flutter/material.dart';
+import 'package:listapedidos/models/pedido_model.dart';
+import 'package:listapedidos/services/pedido_banco.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,140 +10,106 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-    //============================================
-  final _nomeController = TextEditingController();
-  final _descricaoController = TextEditingController();
-  final _categoriaController = TextEditingController();
-  final _valorController = TextEditingController();
-  List<PedidoModel> _listarPedidos = []; 
+  //============================================
+  List<PedidoModel> _listarPedidos = [];
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
     _carregarLista();
   }
 
   void _carregarLista() async {
-    final pedidos = await PedidoBanco().listarContatos();
+    final pedidos = await PedidoBanco().listarPedidos();
     setState(() {
-      _listarPedidos = pedidos;
+      _listarPedidos = pedidos; 
     });
   }
 
-  void abrirFormulario(PedidoModel pedido) {
-    _nomeController.text= pedido.nome;
-    _descricaoController.text= pedido.descricao;
-    _categoriaController.text= pedido.categoria;
+  void abrirFormulario(PedidoModel? pedido){
+    final nomeController = TextEditingController();
+    final descricaoController = TextEditingController();
+    final categoriaController = TextEditingController();
+    final valorController = TextEditingController();
     showDialog(
       context: context, 
       builder: (context) {
         return AlertDialog(
-          title: Text("Cadastro"),
+          title: Text(pedido?.id == null ? "Cadastro de contato" : "Edição contato"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nomeController,
-                decoration: InputDecoration(
-                  label: Text("Nome")
-                ),
+                controller: nomeController,
+                decoration: InputDecoration(label: Text("Nome")),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 20,),
               TextField(
-                controller: _descricaoController,
-                decoration: InputDecoration(
-                  label: Text("Descrição")
-                ),
+                controller: descricaoController,
+                decoration: InputDecoration(label: Text("Descricao")),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 20,),
               TextField(
-                controller: _categoriaController,
-                decoration: InputDecoration(
-                  label: Text("Categoria")
-                ),
+                controller: categoriaController,
+                decoration: InputDecoration(label: Text("Categoria")),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 20,),
               TextField(
-                controller: _valorController,
-                decoration: InputDecoration(
-                  label: Text("Valor")
-                ),
+                controller: valorController,
+                decoration: InputDecoration(label: Text("Valor")),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 20,),
+
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancelar")),
-            TextButton(onPressed: () => _salvarDados(pedido), child: Text("Salvar"))
-          ],
-        );
-      }
-    );
-  }//fim da função abrir formulario
-  
-  void _salvarDados(PedidoModel pedido) async {
-    // pega os dados do formulario e cria um novo contato
-    final novoPedido = PedidoModel(
-      nome: _nomeController.text,
-      descricao: _descricaoController.text,
-      categoria: _categoriaController.text,
-      valor: double.parse(_valorController.text),
-      id: pedido.id
-    );
-    //verifica se é modo de edição ou cadastro
-    bool modoEdicao = pedido.id == null;// se false, é modo de cadastro
-    bool cadastrou = false;
-    if(modoEdicao) {
-      cadastrou = await PedidoBanco().inserirContato(novoPedido);
-    } else {
-      cadastrou = await PedidoBanco().atualizarContato(novoPedido);
-    }
-    if(cadastrou) {
-      //atualiza a lista de contatos
-      _carregarLista();
-      //limpa os campos do formulario
-      _nomeController.clear();
-      _descricaoController.clear();
-      _categoriaController.clear();
-      _valorController.clear();
-      //fecha o formulario
-      Navigator.of(context).pop();
-    }
-  }
-
-  void deletarContato(int id) async {
-    bool deletou = await PedidoBanco().deletarPedido(id);
-    if(deletou){
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Contato apagado!"))
-      );
-    }
-  }
-
-  //modal confirmação
-  void _abrirModalExclusao(PedidoModel contato){
-    showDialog(
-      context: context, 
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Excluir Contato"),
-          content: Text("Tem certeza que deseja excluir ${contato.nome}?"),
-          actions: [
-            TextButton(onPressed: ()=>Navigator.of(context).pop(), 
-            child: Text("Cancelar")),
-
             TextButton(
-              onPressed: (){
-                deletarContato(contato.id!);
-                _carregarLista();
-              }, 
-              child: Text("Excluir")),
+              onPressed: () => Navigator.pop(context), 
+              child: Text("Cancelar")
+            ),
+            TextButton(
+              onPressed: () {
+                final dadosPedido = PedidoModel(
+                  id: pedido?.id,
+                  nome: nomeController.text,
+                  descricao: descricaoController.text,
+                  categoria: categoriaController.text,
+                  valor: double.parse(valorController.text)
+                );
 
-            
+                _salvarDados(dadosPedido);
+              }, 
+              child: Text("Salvar")
+            )
           ],
         );
       });
   }
+
+  void _salvarDados(PedidoModel pedido) async {
+    bool modoEdicao = pedido.id == null;
+    bool salvou = false;
+    if (modoEdicao) {
+      salvou = await PedidoBanco().inserirPedido(pedido);
+    } else {
+      salvou = await PedidoBanco().atualizarPedido(pedido);
+    }
+    if (salvou) {
+      //fecha modal formulario
+      Navigator.of(context).pop();
+
+      // carrega a lista novamente
+      _carregarLista();
+
+      //abre a modal de avisos
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(modoEdicao ? "Contato salvo!" : "Contato atualizado!"),
+        ),
+      );
+    }
+  } //fim da função salvar dados
+
 
   //============================================
   @override
@@ -160,10 +126,16 @@ class _HomeScreenState extends State<HomeScreen> {
             margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             child: ListTile(
               title: Text("Nome"),
-              subtitle: Text("Descricao - categoria \n Preço"),
-              isThreeLine: true
-              
-            ),
+              subtitle: Text("Descrição \nCategoria \nPreço"),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(onPressed: (){}, icon: Icon(Icons.edit)),
+                  IconButton(onPressed: (){}, icon: Icon(Icons.delete))
+                ],
+              ),
+            )
+            
           );
         }
         ),

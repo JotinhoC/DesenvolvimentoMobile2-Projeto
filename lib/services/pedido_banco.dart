@@ -1,4 +1,5 @@
-import 'package:app/models/pedido_model.dart';
+import 'package:listapedidos/models/pedido_model.dart';
+import 'package:flutter/widgets.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -9,30 +10,36 @@ class PedidoBanco {
       // /data/data/<package_name>/databases/"contato.db"
       join(await getDatabasesPath(), 'pedidos.db'),
       onCreate: (db, version) {
-        return db.execute("""CREATE TABLE contatos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          nome TEXT,
-          descricao TEXT,
-          categoria TEXT,
-          valor REAL
-        )""");
+        return db.execute("CREATE TABLE pedidos (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, descricao TEXT, categoria TEXT,valor REAL)");
       },
       version: 1
     );
   }
-  Future<List<PedidoModel>> listarContatos() async {
-    final db = await iniciarBanco();
-    final List<Map<String, dynamic>> json = await db.query("pedidos");
-     return json.map((item) => PedidoModel.fromJson(item)).toList();
+  Future<List<PedidoModel>> listarPedidos() async {
+
+    try{
+      final db = await iniciarBanco();
+      debugPrint(db.toString());
+      final List<Map<String, dynamic>> json = await db.query("pedidos");
+      
+      return json.map((item) => PedidoModel.fromJson(item)).toList();
+    }catch (e) {
+      debugPrint("erro: ${e.toString()}");
+      
+      return [];
+    }
+    
+
+    
   }
 
-  Future<bool> inserirContato(PedidoModel dadosPedido) async {
+  Future<bool> inserirPedido(PedidoModel dadosPedido) async {
     final db = await iniciarBanco(); 
     await db.insert("pedidos", dadosPedido.toJson());
     return true;
   }
 
-  Future<bool> atualizarContato(PedidoModel dadosPedido) async {
+  Future<bool> atualizarPedido(PedidoModel dadosPedido) async {
     final db = await iniciarBanco();
     await db.update(
       "pedidos", 
@@ -47,7 +54,7 @@ class PedidoBanco {
   Future<bool> deletarPedido(int id) async {
     final db = await iniciarBanco();
     await db.delete(
-      "contatos",
+      "pedidos",
       where: 'id = ?',
       whereArgs: [id]
     );
